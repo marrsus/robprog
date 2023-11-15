@@ -1,0 +1,51 @@
+#include <Zumo32U4.h>
+Zumo32U4Motors motors;
+Zumo32U4LCD display;
+Zumo32U4LineSensors lineSensors;
+
+int a, b, lineSensorValues[5];
+bool flagleft, flagriht = false, false;
+int passes = 0;
+
+void setup() {
+  Serial.begin(9600);
+  lineSensors.initFiveSensors();
+  lineSensors.calibrate();
+  motors.setSpeeds(70, 70);
+  Align();
+}
+
+void loop() {
+}
+
+void Align() {
+  display.clear();
+  display.print("Align");
+  for(;;;) {
+
+    lineSensors.readCalibrated(lineSensorValues);
+    Serial.println("venstre1");
+    Serial.println(lineSensorValues[1]);
+    Serial.println("højre1");
+    Serial.println(lineSensorValues[3]);
+
+    if (lineSensorValues[3] < 2 && lineSensorValues[1] < 2) {
+      continue;
+    }
+
+    if (lineSensorValues[3] > lineSensorValues[1]) {
+      Serial.print("YO");
+      motors.setSpeeds(-50, -130);
+      delay(100);
+
+    } else if (lineSensorValues[3] < lineSensorValues[1]) {
+      Serial.print("BO");
+      motors.setSpeeds(-130, -50);
+      delay(100);
+    } else{
+      motors.setSpeeds(0,0);
+      return;
+    }
+    motors.setSpeeds(60,60);
+  }
+}
