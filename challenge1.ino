@@ -11,7 +11,6 @@ int levels[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 int levelCount = 10;
 
 void setup() {
-  Serial.begin(9600);
   Sensor.initFrontSensor();
   Sensor.setPeriod(500);
   Sensor.setBrightnessLevels(levels, levelCount);
@@ -57,10 +56,8 @@ void Align() {
 
 void stopafter(int threshold) {
   while (true) {
-    Serial.println(Sensor.countsFrontWithRightLeds());
     motors.setSpeeds(90, 90);
     Sensor.read();
-        Serial.println(Sensor.countsFrontWithRightLeds());
     if (Sensor.countsFrontWithLeftLeds() < threshold) {
       motors.setSpeeds(0,0);
       return;
