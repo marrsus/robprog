@@ -1,60 +1,17 @@
-void challenge5Setup() {
-  while(!buttonA.getSingleDebouncedPress()){
-    encoderThreshFirst = 2850 + encoders.getCountsLeft();
-    encoderThresh = 3400 + encoders.getCountsRight();
-    display.clear();
-    display.gotoXY(0,0);
-    display.print(encoderThreshFirst);
-    display.gotoXY(0,1);
-    display.print(encoderThresh);
-    delay(50);
-  }
-  encoders.getCountsAndResetLeft();
-  encoders.getCountsAndResetRight();
-  while(!buttonA.getSingleDebouncedPress()){
-    distancePoleSwitch = 1400 + encoders.getCountsLeft();
-    k5 = 15 + encoders.getCountsRight()/50;
-    display.clear();
-    display.gotoXY(0,0);
-    display.print(distancePoleSwitch);
-    display.gotoXY(0,1);
-    display.print(k5);
-    delay(50);
-  }
-  encoders.getCountsAndResetLeft();
-  encoders.getCountsAndResetRight();
-  while(!buttonA.getSingleDebouncedPress()){
-    proxSensors.read();
-    int L = proxSensors.countsLeftWithLeftLeds();
-    int R = proxSensors.countsRightWithRightLeds();
-    display.clear();
-    display.gotoXY(0,0);
-    display.print(L);
-    display.gotoXY(0,1);
-    display.print(encoders.getCountsLeft());
-    display.gotoXY(6,1);
-    display.print(R);
-    display.gotoXY(4,0);
-    display.print(encoders.getCountsRight());
-  }
+void challenge5() {
+  encoderThreshFirst = get_input(2850,1,1,10000,1,"enc ths1");
+  encoderThresh = get_input(3400,1,1,10000,1,"enc ths");
+  distancePoleSwitch = get_input(1400,1,1,10000,1,"dist p s");
+  k5 = get_input(15,countJump,1,10000,1,"k5");
 
   //Turn right 180*
   encoders.getCountsAndResetLeft();
   while(true) {
     proxSensors.read();
-    int L = proxSensors.countsLeftWithLeftLeds();
-    int R = proxSensors.countsRightWithRightLeds();
-    revolve(1, R);
-    display.clear();
-    display.gotoXY(0,0);
-    display.print(L);
-    display.gotoXY(0,1);
-    display.print(encoders.getCountsLeft());
+    revolve(1, proxSensors.countsRightWithRightLeds());
     if(encoders.getCountsLeft() > encoderThreshFirst) break;
   }
-}
 
-void challenge5Loop() {
   while(true){
     changePole();
 
@@ -62,17 +19,10 @@ void challenge5Loop() {
     encoders.getCountsAndResetRight();
     while(true){
       proxSensors.read();
-      int L = proxSensors.countsLeftWithLeftLeds();
-      int R = proxSensors.countsRightWithRightLeds();
-      revolve(-1, L);
-      lineSensors.read(lineSensorValues, QTR_EMITTERS_ON);
+      revolve(-1, proxSensors.countsLeftWithLeftLeds());
+      readLineSensors();
       if(lineSensorValues[0] > 600 || lineSensorValues[2] > 600 || lineSensorValues[4] > 600) encoders.getCountsAndResetRight();
       if(encoders.getCountsRight() > encoderThresh) break;
-      display.clear();
-      display.gotoXY(0,0);
-      display.print(L);
-      display.gotoXY(0,1);
-      display.print(encoders.getCountsRight());
     }
     changePole();
 
@@ -80,32 +30,12 @@ void challenge5Loop() {
     encoders.getCountsAndResetLeft();
     while(true){
       proxSensors.read();
-      int L = proxSensors.countsLeftWithLeftLeds();
-      int R = proxSensors.countsRightWithRightLeds();
-      revolve(1, R);
-      lineSensors.read(lineSensorValues, QTR_EMITTERS_ON);
+      revolve(1, proxSensors.countsRightWithRightLeds());
+      readLineSensors();
       if(lineSensorValues[0] > 600 || lineSensorValues[2] > 600 || lineSensorValues[4] > 600) encoders.getCountsAndResetLeft();
       if(encoders.getCountsLeft() > encoderThresh) break;
-      display.clear();
-      display.gotoXY(0,0);
-      display.print(R);
-      display.gotoXY(0,1);
-      display.print(encoders.getCountsLeft());
     }
   }
-}
-
-void changeToRightPole() {
-  motors.setSpeeds(baseSpeed5, baseSpeed5*2);
-  while(true) {
-    proxSensors.read();
-    int L = proxSensors.countsLeftWithLeftLeds();
-    int R = proxSensors.countsRightWithRightLeds();
-    display.gotoXY(0,0);
-    display.print(L);
-    if(L >= 11 || (R == 0 && L == 0)) break;
-  }
-  delay(800);
 }
 
 void changePole() {
