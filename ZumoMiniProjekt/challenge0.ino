@@ -1,5 +1,5 @@
 void loop() {
-  switch (get_input(1,10,1,7,1,"Chal")) {
+  switch (get_input(1,countJump,1,7,1,"Chal")) {
     case 1:
       challenge1();
       break;

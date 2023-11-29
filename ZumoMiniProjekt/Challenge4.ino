@@ -1,10 +1,11 @@
 void challenge4() {
-  turnSensorSetup();
-  turnSensorUpdate();
-  setThresholds();
-
   travelDist = get_input(0,countJump,1,100,0,"TravelDist");
   rettning = 0;
+
+  setThresholds();
+  turnSensorSetup();
+  turnSensorUpdate();
+  
 
   motors.setSpeeds(speed, speed);
   while (lineSensorValues[0] < threshold[0] && lineSensorValues[2] < threshold[2] && lineSensorValues[4] < threshold[4]) {

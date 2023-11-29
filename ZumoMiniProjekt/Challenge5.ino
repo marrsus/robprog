@@ -3,6 +3,7 @@ void challenge5() {
   encoderThresh = get_input(3400,1,1,10000,1,"enc ths");
   distancePoleSwitch = get_input(1400,1,1,10000,1,"dist p s");
   k5 = get_input(15,countJump,1,10000,1,"k5");
+  setThresholds();
 
   //Turn right 180*
   encoders.getCountsAndResetLeft();

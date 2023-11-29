@@ -71,6 +71,11 @@ int distancePoleSwitch;
 //Copied from challenge 6
 int angle = 0;
 
+//challenge 7
+int16_t flow = 0;
+int32_t turnDegrees;
+int16_t countsLeft, countsRight;
+
 void setup() {
   lineSensors.initFiveSensors();
   proxSensors.initThreeSensors();
@@ -101,22 +106,20 @@ void printSomething(String line1, String line2) {
 int get_input(int start_val, int sensativiti, int stepsize, int max, int min, char* variable_name) {
   int val = start_val;
   int movement = 0;
+  printSomething(variable_name,(String)(val));
   while (!buttonA.isPressed()) {
     movement = movement + encoders.getCountsRight();
     resetEncoders();
     if (abs(movement) > sensativiti) {
       bip();
-      display.clear();
-      display.println(variable_name);
-      display.gotoXY(0, 1);
-      display.println((char)(val+48));
-      movement = 0;
-
-      if (movement > 0) val += stepsize; else val -= stepsize;
+      if (movement > 0) val += stepsize; else if (movement < 0) val -= stepsize;
       if (val > max) val = max;
       if (val < min) val = min;
+      printSomething(variable_name,(String)(val));
+      movement = 0;
     }
   }
+  buttonA.waitForRelease();
   return val;
 }
 
