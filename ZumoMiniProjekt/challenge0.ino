@@ -19,6 +19,7 @@ void loop() {
       challenge6();
       break;
     case 7:
+      challenge7();
       break;
   }
 }
