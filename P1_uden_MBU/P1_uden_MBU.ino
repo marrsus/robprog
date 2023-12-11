@@ -11,16 +11,28 @@ Zumo32U4ProximitySensors proxSensors;
 
 #define NUM_SENSORS 5
 unsigned int lineSensorValues[NUM_SENSORS];
+/*
+double ogturnAngle = 0;
+double ogtiltAngle = 0;
+int16_t oggyroOffsetZ;
+int16_t oggyroOffsetY;
+uint16_t oggyroLastUpdate = 0;
+int32_t ogtotalZ;
+int32_t ogtotalY;
+*/
 
 double turnAngle = 0;
 double tiltAngle = 0;
+double pivotAngle = 0;
 int16_t gyroOffsetZ;
 int16_t gyroOffsetY;
+int16_t gyroOffsetX;
 uint16_t gyroLastUpdate = 0;
 int threshold[5];
 bool startFromRoad;
 uint16_t brightnessLevels[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 };
 uint8_t levels = 20;
+int start;
 
 void setup() {
   // put your setup code here, to run once:
@@ -32,8 +44,28 @@ void setup() {
   setThresholds();
   delay(1000);
   gyroSetup();
+  //ogturnSensorSetup();
   //while(true){
-  //  printOnDisplay((String)getTurnAngleInDegrees(),(String)getTiltAngleInDegrees(false));
+  //  Serial.print("Mixed_tilt_angle:");
+  //  Serial.print(getTiltAngleInDegrees(true));
+  //  Serial.print(",Gyroscope:");
+  //  Serial.print(oggetTiltAngleInDegrees(true));
+  //  Serial.print(",Accelerometer:");
+  //  Serial.println(atan2(imu.a.x, imu.a.z) * 180 / M_PI);
+  //  Serial.print("Mixed_pivot_angle:");
+  //  Serial.print(getPivotAngleInDegrees(true));
+  //  Serial.print(",Accelerometer:");
+  //  Serial.println(atan2(imu.a.y, imu.a.z) * 180 / M_PI);
+  //  motors.setSpeeds(-150,150);
+  //  start = millis();
+  //  while(start+1000 > millis() ) {
+  //    printOnDisplay("",(String)getPivotAngleInDegrees(1));
+  //  }
+  //  motors.setSpeeds(150,-150);
+  //  start = millis();
+  //  while(start+1000 > millis() ) {
+  //    printOnDisplay("",(String)getPivotAngleInDegrees(1));
+  //  }
   //}
 }
 
@@ -60,12 +92,12 @@ void roadToSidewalk(){
   turnAndDrive(90,1,100);
   imuReset();
   motors.setSpeeds(150,150);
-  while(getTiltAngleInDegrees(1)<18.0){
+  while(abs(getTiltAngleInDegrees(1))<18.0){
     printOnDisplay("Sut mig",(String)getTiltAngleInDegrees(0));
   }
   bip();
-  while(getTiltAngleInDegrees(1)>1){
-    printOnDisplay("Sut mig",(String)getTiltAngleInDegrees(0));
+  while(abs(getTiltAngleInDegrees(1))>1){
+    printOnDisplay("Tilt Angle",(String)getTiltAngleInDegrees(0));
   }
   bip();
   delay(300);
@@ -73,19 +105,39 @@ void roadToSidewalk(){
   turnAndDrive(90,0,100);
   delay(2000);
   motors.setSpeeds(0,0);
-  delay(10000000);
+  while(!buttonA.isPressed()){}
+  buttonA.waitForRelease();
 }
 
 void sidewalkToRoad(){
-  while(true){
+  while(abs(getTiltAngleInDegrees(true)) < 18){
     readLineSensors();
     printOnDisplay((String)lineSensorValues[0],(String)threshold[0]);
-    if(lineSensorValues[0]<threshold[0]){
+    if(getPivotAngleInDegrees(true) > 3.5 || getPivotAngleInDegrees(true) < -3.5){
+      motors.setSpeeds(-200,200);
+      bip();
+    }else if(lineSensorValues[0]<threshold[0]){
       motors.setSpeeds(0,150);
+    }else if(lineSensorValues[0]>threshold[0]){
+      motors.setSpeeds(150,50);
+      goodDelay(1000);
     }
-    if(lineSensorValues[0]>threshold[0]){
-      motors.setSpeeds(150,0);
-    }
+  }
+  motors.setSpeeds(150,150);
+  while(abs(getTiltAngleInDegrees(true)) > 4){
+    printOnDisplay("Tilt Angle",(String)getTiltAngleInDegrees(0));
+  }
+  delay(1000);
+  turnAndDrive(90,1,100);
+  delay(2000);
+  motors.setSpeeds(0,0);
+  delay(10000000);
+}
+
+void goodDelay(int delayAmount){
+  start = millis();
+  while(start + delayAmount > millis()){
+    printOnDisplay("",(String)getPivotAngleInDegrees(1));
   }
 }
 
@@ -130,9 +182,6 @@ void turnAndDrive(int angle, bool direction,int speed){
   motors.setSpeeds(150,150);
 }
 
-
-
-
 void printReadingsToSerial(){
   char buffer[80];
   sprintf(buffer, "%4d %4d %4d %4d %4d\n",
@@ -170,7 +219,7 @@ void setThresholds() {
   }
   buttonA.waitForRelease();
   for (int i = 0; i < 5; i++) {
-    threshold[i] = (temp[i] + temp[i + 5]) / 2;
+    threshold[i] = (temp[i]*0.5 + temp[i + 5]*0.5);
   }
   printOnDisplay("Press A", "to start");
   while (!buttonA.isPressed()) {}
@@ -209,6 +258,7 @@ void gyroSetup() {
   // Calibrate the gyro.
   int32_t totalZ = 0;
   int32_t totalY = 0;
+  int32_t totalX = 0;
   for (uint16_t i = 0; i < 1024; i++) {
     // Wait for new data to be available, then read it.
     while (!imu.gyroDataReady()) {}
@@ -217,10 +267,12 @@ void gyroSetup() {
     // Add the Z axis reading to the total.
     totalZ += imu.g.z;
     totalY += imu.g.y;
+    totalX += imu.g.x;
   }
   ledYellow(0);
   gyroOffsetZ = totalZ / 1024;
   gyroOffsetY = totalY / 1024;
+  gyroOffsetX = totalX / 1024;
 
   // Display the angle (in degrees from -180 to 180) until the
   // user presses A.
@@ -238,10 +290,16 @@ double getTiltAngleInDegrees(bool updateSensor) {
   return tiltAngle;
 }
 
+double getPivotAngleInDegrees(bool updateSensor){
+  if (updateSensor) turnSensorUpdate();
+  return pivotAngle;
+}
+
 void imuReset() {
   gyroLastUpdate = millis();
   turnAngle = 0;
   tiltAngle = 0;
+  pivotAngle = 0;
 }
 
 // Read the gyro and update the angle.  This should be called as
@@ -252,6 +310,7 @@ void turnSensorUpdate() {
   imu.readAcc();
   int16_t turnRate = imu.g.z - gyroOffsetZ;
   int16_t tiltRate = -imu.g.y + gyroOffsetY;
+  int16_t pivotRate = imu.g.x - gyroOffsetX;
 
   // Figure out how much time has passed since the last update (dt)
   uint16_t m = millis();
@@ -263,6 +322,7 @@ void turnSensorUpdate() {
   // (angular change = angular velocity * time)
   double dZ = (double)turnRate*0.07 * (double)dt*0.001;
   double dY = (double)tiltRate*0.07 * (double)dt*0.001;
+  double dX = (double)pivotRate*0.07 * (double)dt*0.001;
   // The units of turnrate are gyro digits.
   // The conversion from gyro digits to
   // degrees per second (dps) is determined by the sensitivity of
@@ -273,8 +333,11 @@ void turnSensorUpdate() {
   turnAngle += dZ;
 
   //For the tilt, also calculate it using accelerometer.
-  double accAngle = (atan2(imu.a.x, imu.a.z) * 180 / M_PI);
-  
+  double accAngleY = (atan2(imu.a.x, imu.a.z) * 180 / M_PI);
+  double accAngleX = (atan2(imu.a.y, imu.a.z) * 180 / M_PI);
+
   //Complimentary filter.
-  tiltAngle = (tiltAngle + dY)*0.95 + accAngle*0.05;
+  tiltAngle = (tiltAngle + dY)*0.99 + accAngleY*0.01;
+  pivotAngle = (pivotAngle + dX)*0.9999 + accAngleX*0.0001;
+  //pivotAngle += dX;
 }
