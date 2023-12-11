@@ -12,8 +12,6 @@ Zumo32U4ProximitySensors proxSensors;
 #define NUM_SENSORS 5
 unsigned int lineSensorValues[NUM_SENSORS];
 
-#define MBUconstant 11930464.71
-
 double turnAngle = 0;
 double tiltAngle = 0;
 int16_t gyroOffsetZ;
@@ -34,15 +32,17 @@ void setup() {
   setThresholds();
   delay(1000);
   gyroSetup();
-  while(true){
-    printOnDisplay((String)getTurnAngleInDegrees(),(String)getTiltAngleInDegrees(false));
-  }
+  //while(true){
+  //  printOnDisplay((String)getTurnAngleInDegrees(),(String)getTiltAngleInDegrees(false));
+  //}
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if(startFromRoad==true){
+  if(startFromRoad){
     roadToSidewalk();
+  } else{
+    sidewalkToRoad();
   }
 }
 
@@ -56,20 +56,37 @@ void roadToSidewalk(){
   bip();
   motors.setSpeeds(100,100);
   delay(2000);
-  gyroReset();
+  printOnDisplay((String)getTurnAngleInDegrees(),(String)getTiltAngleInDegrees(0));
+  turnAndDrive(90,1,100);
+  imuReset();
+  motors.setSpeeds(150,150);
+  while(getTiltAngleInDegrees(1)<18.0){
+    printOnDisplay("Sut mig",(String)getTiltAngleInDegrees(0));
+  }
+  bip();
+  while(getTiltAngleInDegrees(1)>1){
+    printOnDisplay("Sut mig",(String)getTiltAngleInDegrees(0));
+  }
+  bip();
+  delay(300);
   printOnDisplay((String)getTurnAngleInDegrees(),"");
-  turnAndDrive(5,270,1,150);
-  delay(1500);
-  gyroReset();
-  printOnDisplay((String)getTurnAngleInDegrees(),"");
-  turnAndDrive(90,355,0,150);
+  turnAndDrive(90,0,100);
   delay(2000);
   motors.setSpeeds(0,0);
   delay(10000000);
 }
 
 void sidewalkToRoad(){
-
+  while(true){
+    readLineSensors();
+    printOnDisplay((String)lineSensorValues[0],(String)threshold[0]);
+    if(lineSensorValues[0]<threshold[0]){
+      motors.setSpeeds(0,150);
+    }
+    if(lineSensorValues[0]>threshold[0]){
+      motors.setSpeeds(150,0);
+    }
+  }
 }
 
 bool whereWeStart(){
@@ -97,15 +114,18 @@ void followOnRight(){
   printOnDisplay((String)R,"");
 }
 
-void turnAndDrive(int angleMax, int angleMin, bool direction,int speed){
-  gyroReset();
-  while(getTurnAngleInDegrees() < angleMax || getTurnAngleInDegrees() > angleMin){
+void turnAndDrive(int angle, bool direction,int speed){
+  imuReset();
     if(direction == true){
-      motors.setSpeeds(speed,-speed);
+      while(getTurnAngleInDegrees() > -angle){
+        motors.setSpeeds(speed,-speed);
+        printOnDisplay((String)getTurnAngleInDegrees(),"");
+      }
     } else{
+      while(getTurnAngleInDegrees() < angle)
       motors.setSpeeds(-speed,speed);
+      printOnDisplay((String)getTurnAngleInDegrees(),"");
     }
-  }
   printOnDisplay((String)getTurnAngleInDegrees(),"");
   motors.setSpeeds(150,150);
 }
@@ -205,12 +225,11 @@ void gyroSetup() {
   // Display the angle (in degrees from -180 to 180) until the
   // user presses A.
   display.clear();
-  gyroReset();
+  imuReset();
 }
 
 double getTurnAngleInDegrees() {
   turnSensorUpdate();
-  // do some math and pointer magic to turn angle in seconds to angle in degree
   return turnAngle;
 }
 
@@ -219,8 +238,8 @@ double getTiltAngleInDegrees(bool updateSensor) {
   return tiltAngle;
 }
 
-void gyroReset() {
-  gyroLastUpdate = micros();
+void imuReset() {
+  gyroLastUpdate = millis();
   turnAngle = 0;
   tiltAngle = 0;
 }
