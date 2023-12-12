@@ -81,7 +81,7 @@ void loop() {
 void roadToSidewalk(){
   while(lineSensorValues[2] < threshold[2]){
     readLineSensors();
-    followOnRight();
+    followOnRight(12);
     printReadingsToSerial();
     motors.setSpeeds(100,100);
   }
@@ -93,14 +93,14 @@ void roadToSidewalk(){
   imuReset();
   motors.setSpeeds(150,150);
   while(abs(getTiltAngleInDegrees(1))<18.0){
-    printOnDisplay("Sut mig",(String)getTiltAngleInDegrees(0));
+    printOnDisplay("Tilt Angle",(String)getTiltAngleInDegrees(0));
   }
   bip();
   while(abs(getTiltAngleInDegrees(1))>1){
     printOnDisplay("Tilt Angle",(String)getTiltAngleInDegrees(0));
   }
   bip();
-  delay(300);
+  delay(160);
   printOnDisplay((String)getTurnAngleInDegrees(),"");
   turnAndDrive(90,0,100);
   delay(2000);
@@ -110,17 +110,17 @@ void roadToSidewalk(){
 }
 
 void sidewalkToRoad(){
-  while(abs(getTiltAngleInDegrees(true)) < 18){
+  while(abs(getTiltAngleInDegrees(true)) < 15){
     readLineSensors();
     printOnDisplay((String)lineSensorValues[0],(String)threshold[0]);
     if(getPivotAngleInDegrees(true) > 3.5 || getPivotAngleInDegrees(true) < -3.5){
-      motors.setSpeeds(-200,200);
+      motors.setSpeeds(-100,100);
       bip();
     }else if(lineSensorValues[0]<threshold[0]){
-      motors.setSpeeds(0,150);
+      motors.setSpeeds(25,150);
     }else if(lineSensorValues[0]>threshold[0]){
-      motors.setSpeeds(150,50);
-      goodDelay(1000);
+      motors.setSpeeds(150,75);
+      goodDelay(500);
     }
   }
   motors.setSpeeds(150,150);
@@ -131,7 +131,8 @@ void sidewalkToRoad(){
   turnAndDrive(90,1,100);
   delay(2000);
   motors.setSpeeds(0,0);
-  delay(10000000);
+  while(!buttonA.isPressed()){}
+  buttonA.waitForRelease();
 }
 
 void goodDelay(int delayAmount){
@@ -155,14 +156,12 @@ bool whereWeStart(){
   }
 }
 
-void followOnRight(){
+void followOnRight(int afstand){
   proxSensors.read();
   int R = proxSensors.countsRightWithRightLeds();
   int speed = 75;
-  int k = 20;
-  motors.setSpeeds(speed-(R-12)*k,speed+(R-12)*k);
-  int Hspeed;
-  int Vspeed;
+  int k = 150;
+  motors.setSpeeds(speed-(R-afstand)*k,speed+(R-afstand)*k);
   printOnDisplay((String)R,"");
 }
 
@@ -226,7 +225,9 @@ void setThresholds() {
   buttonA.waitForRelease();
   Serial.println(threshold[2]);
   display.clear();
-  display.println("GO!");
+  display.print((String)threshold[0]);
+  display.print(" ");
+  display.print((String)threshold[2]);
 }
 
 void readLineSensors() {
